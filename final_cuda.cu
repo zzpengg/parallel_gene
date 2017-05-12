@@ -56,6 +56,75 @@ __global__ void calPosition(int *data, short int *bay, float *position){
 			}
 }
 
+__global__ void calDistance(int *data, float *position, float *distance){
+
+  int b=blockIdx.x;       //區塊索引 == ISLAND
+  int t=threadIdx.x;      //執行緒索引 == POPULATION
+  int n=blockDim.x;       //區塊中包含的執行緒數目 == num of ISLAND
+  int x=b*n+t;
+
+  int posit = x * FACILITY;
+
+  // int posit=b*POPULATION*FACILITY+t*FACILITY;            //執行緒在陣列中對應的位置
+  // int posofposit = b*POPULATION*FACILITY*2+t*FACILITY*2;
+
+  for(int i=0;i<ISLAND*POPULATION*FACILITY*FACILITY;i++){
+    distance[i] = 0;
+  }
+
+
+  for(int f=0;f<FACILITY;f++){
+    // printf("\ndistance calculate facility%d\n", f);
+    for(int j=f+1;j<FACILITY;j++){
+
+      float x1 = position[ (posit + f)*2 ];
+      float y1 = position[ (posit + f)*2 + 1];
+
+      int x = data[ posit + f ];
+      // printf("x = %d\n", x);
+      float x2 = position[ (posit + j)*2 ];
+      float y2 = position[ (posit + j)*2 + 1];
+      int y = data[ posit + j ];
+      // printf("y= %d\n", y);
+      if(y2 > y1){
+        distance[ (posit + x)*FACILITY + y] = sqrt( (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1) ) ;
+        distance[ (posit + y)*FACILITY + x] = sqrt( (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1) ) ;
+      }
+      else{
+        distance[ (posit + x)*FACILITY + y] = sqrt( (x2 - x1) * (x2 - x1) + (y1 - y2) * (y1 - y2) ) ;
+        distance[ (posit + y)*FACILITY + x] = sqrt( (x2 - x1) * (x2 - x1) + (y1 - y2) * (y1 - y2) ) ;
+      }
+    }
+  }
+
+}
+
+__global__ void calTotalcost(float *distance, int *cost, float *totalCost){
+
+  int b=blockIdx.x;       //區塊索引 == ISLAND
+  int t=threadIdx.x;      //執行緒索引 == POPULATION
+  int n=blockDim.x;       //區塊中包含的執行緒數目 == num of ISLAND
+  int x=b*n+t;
+
+  int posit = x * FACILITY;
+
+  // int posit=b*POPULATION*FACILITY+t*FACILITY;            //執行緒在陣列中對應的位置
+  // int posofposit = b*POPULATION*FACILITY*2+t*FACILITY*2;
+
+  // for(int i=0;i<ISLAND*POPULATION*FACILITY*FACILITY;i++){
+  //   totalCost[i] = 0;
+  // }
+
+
+	for(int f=0;f<FACILITY;f++){
+		for(int j=0;j<FACILITY;j++){
+			totalCost[ (posit + f)*FACILITY + j] = cost[f*FACILITY + j] * distance[ (posit + f)*FACILITY + j];
+		}
+	}
+
+}
+
+
 int main(){
   srand(time(NULL));
 
@@ -117,20 +186,31 @@ int main(){
 	cudaMemcpy(GB, bay, ISLAND*POPULATION*(FACILITY-1)*sizeof(short int), cudaMemcpyHostToDevice);
 
   // read ther cost
-	// FILE *fPtr;
-  //
-	// fPtr=fopen("cost.txt","r");
-	// int cost[FACILITY][FACILITY] = {0};
-	// int temp[15][3]; // cost
-	// for(int i=0;i<15;i++){
-	// 	for(int a=0;a<3;a++){
-	// 		fscanf(fPtr , "%d " , &temp[i][a]);
-	// 	}
-	// }
-	// fclose(fPtr);
-	// for(int i=0;i<15;i++){ // 2 dimention cost
-	// 	cost[temp[i][0]-1][temp[i][1]-1] = temp[i][2];
-	// }
+	FILE *fPtr;
+
+	fPtr=fopen("cost.txt","r");
+	int cost[FACILITY*FACILITY] = {0};
+	int temp[15*3]; // cost
+	for(int i=0;i<15;i++){
+		for(int a=0;a<3;a++){
+			fscanf(fPtr , "%d " , &temp[i*3 + a]);
+		}
+	}
+	fclose(fPtr);
+	for(int i=0;i<15;i++){ // 2 dimention cost
+		cost[ (temp[i*3]-1)*FACILITY + temp[i*3+1]-1] = temp[ i*3 + 2];
+	}
+  printf("cost: \n");
+  for(int i=0;i<FACILITY;i++){ // 2 dimention cost
+    for(int j=0;j<FACILITY;j++){
+      printf("%d ", cost[i*FACILITY + j]);
+    }
+    printf("\n");
+	}
+  int *Gcost;
+  cudaMalloc((void**)&Gcost, FACILITY*FACILITY*sizeof(int));
+  cudaMemcpy(Gcost, cost, FACILITY*FACILITY*sizeof(int), cudaMemcpyHostToDevice);
+
 
   float *Gposition;
   cudaMalloc((void**)&Gposition, ISLAND*POPULATION*FACILITY*2*sizeof(float));
@@ -193,6 +273,57 @@ int main(){
   }
   printf("\n");
 
+  float distance[ISLAND*POPULATION*FACILITY*FACILITY] = {0};
+
+  float *Gdistance;
+  cudaMalloc((void**)&Gdistance, ISLAND*POPULATION*FACILITY*FACILITY*sizeof(float));
+
+
+  calDistance<<<g, b>>>(GA, Gposition, Gdistance);
+
+	cudaMemcpy(distance, Gdistance, ISLAND*POPULATION*FACILITY*FACILITY*sizeof(float), cudaMemcpyDeviceToHost);
+
+  printf("\ncalculate distance end\n");
+
+  // print distance
+	for(int i=0;i<ISLAND;i++){
+		for(int p=0;p<POPULATION;p++){
+      printf("po%d: \n", p);
+			for(int f=0;f<FACILITY;f++){
+				for(int j=0;j<FACILITY;j++){
+					printf("%f ", distance[ i*POPULATION*FACILITY*FACILITY + p*FACILITY*FACILITY + f*FACILITY + j ]);
+				}
+				printf("\n");
+			}
+		}
+	}
+
+
+  float totalCost[ISLAND*POPULATION*FACILITY*FACILITY] = {0.0};
+
+  float *GtotalCost;
+  cudaMalloc((void**)&GtotalCost, ISLAND*POPULATION*FACILITY*FACILITY*sizeof(float));
+
+  calTotalcost<<<g, b>>>(Gdistance, Gcost, GtotalCost);
+
+  cudaMemcpy(totalCost, GtotalCost, ISLAND*POPULATION*FACILITY*FACILITY*sizeof(float), cudaMemcpyDeviceToHost);
+
+  // print totalCost
+	for(int i=0;i<ISLAND;i++){
+		for(int p=0;p<POPULATION;p++){
+      printf("po%d: \n", p);
+			for(int f=0;f<FACILITY;f++){
+				for(int j=0;j<FACILITY;j++){
+					printf("%f ", totalCost[i*POPULATION*FACILITY*FACILITY + p*FACILITY*FACILITY + f*FACILITY + j]);
+				}
+				printf("\n");
+			}
+		}
+	}
+
+
+
+  cudaFree(Gdistance);
   cudaFree(Gposition);
   return 0;
 
