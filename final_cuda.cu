@@ -11,13 +11,18 @@
 #define W 2 // BAY width
 
 void shuffle(int* facility);
-__global__ void calPosition(int *data, short int *bay, int *position){
+
+__global__ void calPosition(int *data, short int *bay, float *position){
 
   int b=blockIdx.x;       //區塊索引 == ISLAND
   int t=threadIdx.x;      //執行緒索引 == POPULATION
-  // int n=blockDim.x;       //區塊中包含的執行緒數目 == num of ISLAND
-  int posit=b*POPULATION*FACILITY+t*FACILITY;            //執行緒在陣列中對應的位置
-  int posofposit = b*POPULATION*FACILITY*2+t*FACILITY*2;
+  int n=blockDim.x;       //區塊中包含的執行緒數目 == num of ISLAND
+  int x=b*n+t;
+
+  int posit = x * FACILITY;
+  int bayposit = x * (FACILITY-1);
+  // int posit=b*POPULATION*FACILITY+t*FACILITY;            //執行緒在陣列中對應的位置
+  // int posofposit = b*POPULATION*FACILITY*2+t*FACILITY*2;
 
   for(int i=0;i<ISLAND*POPULATION*FACILITY*2;i++){
     position[i] = 0;
@@ -27,22 +32,22 @@ __global__ void calPosition(int *data, short int *bay, int *position){
 			int len = 1;
 			int next = 0;
 			for(int f=0;f<FACILITY;f++){
-				if(bay[posit+f] == 0){
+				if(bay[bayposit+f] == 0){
 					len = len + 1;
 				}
-				if(bay[posit+f] == 1 || f == FACILITY - 1 ){
-					if(f == FACILITY - 1 && bay[posit+f] == 0){
+				if(bay[bayposit+f] == 1 || f == FACILITY - 1 ){
+					if(f == FACILITY - 1 && bay[bayposit+f] == 0){
 						len = len - 1;
 					}
 					float x = W / 2.0 + next;
 
 					for(int j=0;j<len;j++){
 
-						position[posofposit+(f+j-len+1)] = b;
+						position[posit*2+(f+j-len+1)*2] = x;
 
 						float y = H / (len * 2.0) * ( (j * 2) + 1) ;
 
-						position[posofposit+(f+j-len+1)+1] = t;
+						position[posit*2+(f+j-len+1)*2+1] = y;
 					}
 					len = 1;
 
@@ -81,11 +86,22 @@ int main(){
 		}
 	}
 
-  printf("新的子代\n");
+  printf("data\n");
 	for(int i=0;i<ISLAND;i++){
 		for(int p=0;p<POPULATION;p++){
 			for(int f=0;f<FACILITY;f++){
 				printf("%d ", data[i*POPULATION*FACILITY+p*FACILITY+f]);
+			}
+			printf("\n");
+		}
+		printf("\n");
+	}
+
+  printf("bay\n");
+	for(int i=0;i<ISLAND;i++){
+		for(int p=0;p<POPULATION;p++){
+			for(int f=0;f<FACILITY-1;f++){
+				printf("%d ", bay[i*POPULATION*FACILITY+p*(FACILITY-1)+f]);
 			}
 			printf("\n");
 		}
@@ -119,15 +135,15 @@ int main(){
   float *Gposition;
   cudaMalloc((void**)&Gposition, ISLAND*POPULATION*FACILITY*2*sizeof(float));
 
-  int *Gposition2;
-  cudaMalloc((void**)&Gposition2, ISLAND*POPULATION*FACILITY*2*sizeof(int));
+  // int *Gposition2;
+  // cudaMalloc((void**)&Gposition2, ISLAND*POPULATION*FACILITY*2*sizeof(int));
 
   int g=ISLAND, b=POPULATION;
   // int m=g*b;
-  calPosition<<<g, b>>>(GA, GB, Gposition2);
+  calPosition<<<g, b>>>(GA, GB, Gposition);
 
   float position[ISLAND*POPULATION*FACILITY*2];
-  int position2[ISLAND*POPULATION*FACILITY*2];
+  // int position2[ISLAND*POPULATION*FACILITY*2];
 
   int data2[ISLAND*POPULATION*FACILITY];
   short int bay2[ISLAND*POPULATION*(FACILITY-1)]; //bay
@@ -156,7 +172,7 @@ int main(){
 		printf("\n");
 	}
 
-  cudaMemcpy(position2, Gposition2, ISLAND*POPULATION*FACILITY*2*sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(position, Gposition, ISLAND*POPULATION*FACILITY*2*sizeof(float), cudaMemcpyDeviceToHost);
 
   // print position
 	for(int i=0;i<ISLAND;i++){
@@ -165,16 +181,17 @@ int main(){
 			printf("po%d = \n",p);
 			for(int f=0;f<FACILITY;f++){
 				for(int k=0;k<2;k++){
-					printf("%d ", position2[i*POPULATION*FACILITY*2+p*FACILITY*2+f*2+k]);
+					printf("%f ", position[i*POPULATION*FACILITY*2+p*FACILITY*2+f*2+k]);
 				}
 				printf("\n");
 			}
 		}
 	}
 
-  for(int i=0;i<ISLAND*POPULATION*FACILITY;i++){
-    printf("%d ", position2[i]);
+  for(int i=0;i<ISLAND*POPULATION*FACILITY*2;i++){
+    printf("%f ", position[i]);
   }
+  printf("\n");
 
   cudaFree(Gposition);
   return 0;
