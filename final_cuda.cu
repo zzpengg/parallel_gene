@@ -4,7 +4,7 @@
 #include <math.h>
 
 
-#define ISLAND 1
+#define ISLAND 6
 #define POPULATION 10
 #define FACILITY 6
 #define GENERATION 30
@@ -169,7 +169,6 @@ __global__ void calProbability(float *probability, float *totalPro, float *sumCo
   int n=blockDim.x;       //區塊中包含的執行緒數目 == num of ISLAND
   int x=b*n+t;
 
-  int posit = x;
 
   probability[x] = (1.0 / sumCost[x]) / (totalPro[ x / POPULATION ]) ;
 
@@ -370,8 +369,49 @@ __global__ void crossOver(float *probability2, int *data, short int *bay, int *d
 
 }
 
+__global__ void mutation(int *data2, int *mutaYes, int *mutaTem, int *mutaTem2){
+  int b=blockIdx.x;       //區塊索引 == ISLAND
+  int t=threadIdx.x;      //執行緒索引 == POPULATION
+  int n=blockDim.x;       //區塊中包含的執行緒數目 == num of ISLAND
+  int x=b*n+t;
+
+  int posit = x * FACILITY;
+
+  float yes = (mutaYes[x] % 100) * 0.01;
+	// fprintf(FIN, "取得%f \n", yes);
+	if(yes < MUTATION){
+		// fprintf(FIN, "第%d突變\n", p);
+		int get = mutaTem[x] % FACILITY;
+		int get2 = mutaTem2[x] % FACILITY;
+		int temp = data2[posit + get];
+		data2[posit + get] = data2[posit + get2];
+		data2[posit + get2] = temp;
+	}else {
+	}
+}
+
+__global__ void mutationBay(short int *bay2, int *mutaBayYes, int *mutaBayTem){
+  int b=blockIdx.x;       //區塊索引 == ISLAND
+  int t=threadIdx.x;      //執行緒索引 == POPULATION
+  int n=blockDim.x;       //區塊中包含的執行緒數目 == num of ISLAND
+  int x=b*n+t;
+
+  int posit = x * (FACILITY - 1);
+
+	float yes = mutaBayYes[x] % 100 * 0.01 ;
+	if(yes < MUTATION){
+		int get = mutaBayTem[x] % (FACILITY - 1);
+		if(bay2[posit + get] == 0){
+			bay2[posit + get] = 1;
+		}else {
+			bay2[posit + get] = 0;
+		}
+	}
+}
 
 int main(){
+  double START,END;
+  START = clock();
   srand(time(NULL));
 
   int data[ISLAND*POPULATION*FACILITY];
@@ -423,13 +463,13 @@ int main(){
 		printf("\n");
 	}
 
-  int *GA;
-  short int *GB;
-  cudaMalloc((void**)&GA, ISLAND*POPULATION*FACILITY*sizeof(int));
-	cudaMemcpy(GA, data, ISLAND*POPULATION*FACILITY*sizeof(int), cudaMemcpyHostToDevice);
-
-	cudaMalloc((void**)&GB, ISLAND*POPULATION*(FACILITY-1)*sizeof(short int));
-	cudaMemcpy(GB, bay, ISLAND*POPULATION*(FACILITY-1)*sizeof(short int), cudaMemcpyHostToDevice);
+  // int *GA;
+  // short int *GB;
+  // cudaMalloc((void**)&GA, ISLAND*POPULATION*FACILITY*sizeof(int));
+	// cudaMemcpy(GA, data, ISLAND*POPULATION*FACILITY*sizeof(int), cudaMemcpyHostToDevice);
+  //
+	// cudaMalloc((void**)&GB, ISLAND*POPULATION*(FACILITY-1)*sizeof(short int));
+	// cudaMemcpy(GB, bay, ISLAND*POPULATION*(FACILITY-1)*sizeof(short int), cudaMemcpyHostToDevice);
 
   // read ther cost
 	FILE *fPtr;
@@ -456,6 +496,18 @@ int main(){
   int *Gcost;
   cudaMalloc((void**)&Gcost, FACILITY*FACILITY*sizeof(int));
   cudaMemcpy(Gcost, cost, FACILITY*FACILITY*sizeof(int), cudaMemcpyHostToDevice);
+
+
+  for(int gggggg=0;gggggg<GENERATION;gggggg++){ // generation
+
+  printf("\n*****%d的generation*****\n", gggggg);
+  int *GA;
+  short int *GB;
+  cudaMalloc((void**)&GA, ISLAND*POPULATION*FACILITY*sizeof(int));
+	cudaMemcpy(GA, data, ISLAND*POPULATION*FACILITY*sizeof(int), cudaMemcpyHostToDevice);
+
+	cudaMalloc((void**)&GB, ISLAND*POPULATION*(FACILITY-1)*sizeof(short int));
+	cudaMemcpy(GB, bay, ISLAND*POPULATION*(FACILITY-1)*sizeof(short int), cudaMemcpyHostToDevice);
 
 
   float *Gposition;
@@ -501,22 +553,22 @@ int main(){
   cudaMemcpy(position, Gposition, ISLAND*POPULATION*FACILITY*2*sizeof(float), cudaMemcpyDeviceToHost);
 
   // print position
-	for(int i=0;i<ISLAND;i++){
-		printf("island%d \n", i);
-		for(int p=0;p<POPULATION;p++){
-			printf("po%d = \n",p);
-			for(int f=0;f<FACILITY;f++){
-				for(int k=0;k<2;k++){
-					printf("%f ", position[i*POPULATION*FACILITY*2+p*FACILITY*2+f*2+k]);
-				}
-				printf("\n");
-			}
-		}
-	}
+	// for(int i=0;i<ISLAND;i++){
+	// 	printf("island%d \n", i);
+	// 	for(int p=0;p<POPULATION;p++){
+	// 		printf("po%d = \n",p);
+	// 		for(int f=0;f<FACILITY;f++){
+	// 			for(int k=0;k<2;k++){
+	// 				printf("%f ", position[i*POPULATION*FACILITY*2+p*FACILITY*2+f*2+k]);
+	// 			}
+	// 			printf("\n");
+	// 		}
+	// 	}
+	// }
 
-  for(int i=0;i<ISLAND*POPULATION*FACILITY*2;i++){
-    printf("%f ", position[i]);
-  }
+  // for(int i=0;i<ISLAND*POPULATION*FACILITY*2;i++){
+  //   printf("%f ", position[i]);
+  // }
   printf("\n");
 
   float distance[ISLAND*POPULATION*FACILITY*FACILITY] = {0};
@@ -532,17 +584,17 @@ int main(){
   printf("\ncalculate distance end\n");
 
   // print distance
-	for(int i=0;i<ISLAND;i++){
-		for(int p=0;p<POPULATION;p++){
-      printf("po%d: \n", p);
-			for(int f=0;f<FACILITY;f++){
-				for(int j=0;j<FACILITY;j++){
-					printf("%f ", distance[ i*POPULATION*FACILITY*FACILITY + p*FACILITY*FACILITY + f*FACILITY + j ]);
-				}
-				printf("\n");
-			}
-		}
-	}
+	// for(int i=0;i<ISLAND;i++){
+	// 	for(int p=0;p<POPULATION;p++){
+  //     printf("po%d: \n", p);
+	// 		for(int f=0;f<FACILITY;f++){
+	// 			for(int j=0;j<FACILITY;j++){
+	// 				printf("%f ", distance[ i*POPULATION*FACILITY*FACILITY + p*FACILITY*FACILITY + f*FACILITY + j ]);
+	// 			}
+	// 			printf("\n");
+	// 		}
+	// 	}
+	// }
 
 
   float totalCost[ISLAND][POPULATION][FACILITY][FACILITY] = {0.0};
@@ -555,17 +607,17 @@ int main(){
   cudaMemcpy(totalCost, GtotalCost, ISLAND*POPULATION*FACILITY*FACILITY*sizeof(float), cudaMemcpyDeviceToHost);
 
   // print totalCost
-	for(int i=0;i<ISLAND;i++){
-		for(int p=0;p<POPULATION;p++){
-      printf("po%d: \n", p);
-			for(int f=0;f<FACILITY;f++){
-				for(int j=0;j<FACILITY;j++){
-					printf("%f ", totalCost[i][p][f][j]);
-				}
-				printf("\n");
-			}
-		}
-	}
+	// for(int i=0;i<ISLAND;i++){
+	// 	for(int p=0;p<POPULATION;p++){
+  //     printf("po%d: \n", p);
+	// 		for(int f=0;f<FACILITY;f++){
+	// 			for(int j=0;j<FACILITY;j++){
+	// 				printf("%f ", totalCost[i][p][f][j]);
+	// 			}
+	// 			printf("\n");
+	// 		}
+	// 	}
+	// }
 
   float *GsumCost;
   float sumCost[ISLAND][POPULATION]={0.0};
@@ -581,15 +633,15 @@ int main(){
   cudaMemcpy(sumCost, GsumCost, ISLAND*POPULATION*sizeof(float), cudaMemcpyDeviceToHost);
   cudaMemcpy(minCost, GminCost, ISLAND*2*sizeof(float), cudaMemcpyDeviceToHost);
 
-  printf("\n");
-	for(int i=0;i<ISLAND;i++){
-		printf("第%d島嶼: \n", i);
-		for(int p=0;p<POPULATION;p++){
-			printf("%d: ", p);
-		  printf("sum = %f", sumCost[i][p]);
-			printf("\n");
-		}
-	}
+  // printf("\n");
+	// for(int i=0;i<ISLAND;i++){
+	// 	printf("第%d島嶼: \n", i);
+	// 	for(int p=0;p<POPULATION;p++){
+	// 		printf("%d: ", p);
+	// 	  printf("sum = %f", sumCost[i][p]);
+	// 		printf("\n");
+	// 	}
+	// }
 
 
   int data2[ISLAND][POPULATION][FACILITY]; // facility
@@ -600,6 +652,12 @@ int main(){
   cudaMalloc((void**)&Gbay2, ISLAND*POPULATION*FACILITY*sizeof(short int));
 
 	float probability[ISLAND][POPULATION] = {0.0}; // �U�Ӿ��v
+
+  // for(int i=0;i<ISLAND;i++){
+	// 	for(int p=0;p<POPULATION;p++){
+	// 		printf("pro%f \n", probability[i][p]);
+	// 	}
+	// }
   float *Gprobability;
   cudaMalloc((void**)&Gprobability, ISLAND*POPULATION*sizeof(float));
 
@@ -610,28 +668,28 @@ int main(){
   for(int i=0;i<ISLAND;i++){
 		for(int p=0;p<POPULATION;p++){
 			totalPro[i] = totalPro[i] + (1.0 / sumCost[i][p]);
-			printf("%f %f\n", totalPro[i], (1.0 / sumCost[i][p]));
+			// printf("%f %f\n", totalPro[i], (1.0 / sumCost[i][p]));
 		}
 	}
 
   cudaMemcpy(GtotalPro, totalPro, ISLAND*sizeof(float), cudaMemcpyHostToDevice);
 
 
-	for(int i=0;i<ISLAND;i++){
-		for(int p=0;p<POPULATION;p++){
-			printf("%f %f\n", totalPro[i], (1.0 / sumCost[i][p]));
-		}
-	}
+	// for(int i=0;i<ISLAND;i++){
+	// 	for(int p=0;p<POPULATION;p++){
+	// 		printf("%f %f\n", totalPro[i], (1.0 / sumCost[i][p]));
+	// 	}
+	// }
 
   calProbability<<<ISLAND, POPULATION>>>(Gprobability, GtotalPro, GsumCost);
 
   cudaMemcpy(probability, Gprobability, ISLAND*POPULATION*sizeof(float), cudaMemcpyDeviceToHost);
 
-	for(int i=0;i<ISLAND;i++){
-		for(int p=0;p<POPULATION;p++){
-			printf("%f %f %f \n", probability[i][p], (1.0 / sumCost[i][p]), totalPro[i]);
-		}
-	}
+	// for(int i=0;i<ISLAND;i++){
+	// 	for(int p=0;p<POPULATION;p++){
+	// 		printf("%f %f %f \n", probability[i][p], (1.0 / sumCost[i][p]), totalPro[i]);
+	// 	}
+	// }
 
 
   float probability2[ISLAND][POPULATION] = {0.0};
@@ -648,34 +706,47 @@ int main(){
   cudaMemcpy(Gprobability2, probability2, ISLAND*POPULATION*sizeof(float), cudaMemcpyHostToDevice);
 
 	// print probability2 (Roulette)
-	printf("probability2\n");
-	for(int i=0;i<ISLAND;i++){
-		for(int p=0;p<POPULATION;p++){
-			printf("%f ", probability2[i][p]);
-		}
-	}
+	// printf("probability2\n");
+	// for(int i=0;i<ISLAND;i++){
+	// 	for(int p=0;p<POPULATION;p++){
+	// 		printf("%f ", probability2[i][p]);
+	// 	}
+	// }
 
 
 
   int *Gtem, *Gtem2, *Gyes, *Gsss;// choose two to crossover and if yes or not and choose area
-  int tem[20], tem2[20], yes[20], sss[20];
-  cudaMalloc((void**)&Gtem, 20*sizeof(int));
-  cudaMalloc((void**)&Gtem2, 20*sizeof(int));
-  cudaMalloc((void**)&Gyes, 20*sizeof(int));
-  cudaMalloc((void**)&Gsss, 20*sizeof(int));
+  int tem[ISLAND*POPULATION], tem2[ISLAND*POPULATION], yes[ISLAND*POPULATION], sss[ISLAND*POPULATION];
+  cudaMalloc((void**)&Gtem, ISLAND*POPULATION*sizeof(int));
+  cudaMalloc((void**)&Gtem2, ISLAND*POPULATION*sizeof(int));
+  cudaMalloc((void**)&Gyes, ISLAND*POPULATION*sizeof(int));
+  cudaMalloc((void**)&Gsss, ISLAND*POPULATION*sizeof(int));
 
-  for(int i=0;i<20;i++){
-    tem[i] = rand();
-    tem2[i] = rand();
-    yes[i] = rand();
-    sss[i] = rand();
-    printf("%d %d %d %d\n", tem[i], tem2[i], yes[i], sss[i]);
+  int *GmutaYes, *GmutaTem, *GmutaTem2;
+  int mutaYes[ISLAND*POPULATION], mutaTem[ISLAND*POPULATION], mutaTem2[ISLAND*POPULATION];
+  cudaMalloc((void**)&GmutaYes, ISLAND*POPULATION*sizeof(int));
+  cudaMalloc((void**)&GmutaTem, ISLAND*POPULATION*sizeof(int));
+  cudaMalloc((void**)&GmutaTem2, ISLAND*POPULATION*sizeof(int));
+  for(int i=0;i<ISLAND*POPULATION;i++){
+    tem[i] = rand(); // first change
+    tem2[i] = rand(); // second change
+    yes[i] = rand(); // crossover or not
+    sss[i] = rand(); // bay to crossover
+    mutaYes[i] = rand(); // mutation or not
+    mutaTem[i] = rand(); // first to change
+    mutaTem2[i] = rand(); // second to change
+    // printf("%d %d %d %d %d %d %d\n", tem[i], tem2[i], yes[i], sss[i], mutaYes[i], mutaTem[i], mutaTem2[i]);
   }
 
-  cudaMemcpy(Gtem, tem, 20*sizeof(int), cudaMemcpyHostToDevice);
-  cudaMemcpy(Gtem2, tem2, 20*sizeof(int), cudaMemcpyHostToDevice);
-  cudaMemcpy(Gyes, yes, 20*sizeof(int), cudaMemcpyHostToDevice);
-  cudaMemcpy(Gsss, sss, 20*sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(Gtem, tem, ISLAND*POPULATION*sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(Gtem2, tem2, ISLAND*POPULATION*sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(Gyes, yes, ISLAND*POPULATION*sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(Gsss, sss, ISLAND*POPULATION*sizeof(int), cudaMemcpyHostToDevice);
+
+
+  cudaMemcpy(GmutaYes, mutaYes, ISLAND*POPULATION*sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(GmutaTem, mutaTem, ISLAND*POPULATION*sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(GmutaTem2, mutaTem2, ISLAND*POPULATION*sizeof(int), cudaMemcpyHostToDevice);
 
   int *Gcount;
   cudaMalloc((void**)&Gcount, 10*sizeof(int));
@@ -690,45 +761,191 @@ int main(){
   cudaMemcpy(data2, Gdata2, ISLAND*POPULATION*FACILITY*sizeof(int), cudaMemcpyDeviceToHost);
 
   int count[10] = {0};
-  cudaMemcpy(tem, Gtem, 20*sizeof(int), cudaMemcpyDeviceToHost);
-  cudaMemcpy(tem2, Gtem2, 20*sizeof(int), cudaMemcpyDeviceToHost);
-  cudaMemcpy(yes, Gyes, 20*sizeof(int), cudaMemcpyDeviceToHost);
-  cudaMemcpy(sss, Gsss, 20*sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(tem, Gtem, ISLAND*POPULATION*sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(tem2, Gtem2, ISLAND*POPULATION*sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(yes, Gyes, ISLAND*POPULATION*sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(sss, Gsss, ISLAND*POPULATION*sizeof(int), cudaMemcpyDeviceToHost);
   cudaMemcpy(count, Gcount, 10*sizeof(int), cudaMemcpyDeviceToHost);
   cudaMemcpy(getP, GetP, 10*sizeof(int), cudaMemcpyDeviceToHost);
   cudaMemcpy(getP2, GetP2, 10*sizeof(int), cudaMemcpyDeviceToHost);
   cudaMemcpy(test, Gtest, 10*sizeof(int), cudaMemcpyDeviceToHost);
 
-  printf("count: \n");
-  for(int i=0;i<10;i++){
-    printf("%d ", count[i]);
-  }
+  // mutation facility
+	printf("\nready to mutation\n");
 
-  printf("\nget: \n");
-  for(int i=0;i<10;i++){
-    printf("%d %d\n", getP[i], getP2[i]);
-  }
+  mutation<<<ISLAND, POPULATION>>>(Gdata2, GmutaYes, GmutaTem, GmutaTem2);
 
-  printf("\ntest: \n");
-  for(int i=0;i<10;i++){
-    printf("%f\n", test[i]);
-  }
+  cudaMemcpy(mutaYes, GmutaYes, ISLAND*POPULATION*sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(mutaTem, GmutaTem, ISLAND*POPULATION*sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(mutaTem2, GmutaTem2, ISLAND*POPULATION*sizeof(int), cudaMemcpyDeviceToHost);
 
-  printf("\nTEM: \n");
-  for(int i=0;i<20;i++){
-    printf("%d %d %d %d\n", tem[i], tem2[i], yes[i], sss[i]);
-  }
+  int *GmutaBayYes, *GmutaBayTem;
+  int mutaBayYes[ISLAND*POPULATION], mutaBayTem[ISLAND*POPULATION];
+  cudaMalloc((void**)&GmutaBayYes, ISLAND*POPULATION*sizeof(int));
+  cudaMalloc((void**)&GmutaBayTem, ISLAND*POPULATION*sizeof(int));
 
+  cudaMemcpy(GmutaBayYes, mutaBayYes, ISLAND*POPULATION*sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(GmutaBayTem, mutaBayTem, ISLAND*POPULATION*sizeof(int), cudaMemcpyHostToDevice);
+
+  mutationBay<<<ISLAND, POPULATION>>>(Gbay2, GmutaBayYes, GmutaBayTem);
+
+  cudaMemcpy(mutaBayYes, GmutaBayYes, ISLAND*POPULATION*sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(mutaBayTem, GmutaBayTem, ISLAND*POPULATION*sizeof(int), cudaMemcpyDeviceToHost);
+
+  // migration
+	if( (gggggg+1) % MIGRATION == 0 && (gggggg+1) != 0 && ISLAND > 1){
+		printf("***migration***\n");
+
+		int temp3[ISLAND][POPULATION/2][FACILITY];
+		short temp4[ISLAND][POPULATION/2][FACILITY-1];
+		int indexCost[ISLAND][POPULATION];
+
+		for(int i=0;i<ISLAND;i++){
+			for(int p=0;p<POPULATION;p++){
+				indexCost[i][p] = p;
+			}
+		}
+
+		// bubble sort
+		float temp;
+		for(int k=0;k<ISLAND;k++){
+			for(int i=POPULATION-1; i>=1; i--){
+	      for(int j=0; j<=i-1; j++){
+	        if(sumCost[k][j] > sumCost[k][j+1]){
+							int temp2 = indexCost[k][j];
+	            indexCost[k][j] = indexCost[k][j+1];
+	            indexCost[k][j+1] = temp2;
+	        }
+	      }
+	    }
+		}
+
+		// print sorted index
+		for(int i=0;i<ISLAND;i++){
+			for(int p=0;p<POPULATION;p++){
+				printf("%d ", indexCost[i][p]);
+			}
+			printf("\n");
+		}
+
+		int countP = 0;
+		for(int i=0;i<ISLAND;i++){
+			while(countP < INDIVIDUAL){
+				for(int p=0;p<POPULATION;p++){
+					if(p == indexCost[i][countP]){
+						for(int f=0;f<FACILITY;f++){
+							temp3[i][countP][f] = data2[i][p][f];
+						}
+						for(int f=0;f<FACILITY-1;f++){
+							temp4[i][countP][f] = bay2[i][p][f];
+						}
+						countP++;
+						break;
+					}
+				} // population end
+			}
+			countP = 0;
+		} // island end
+
+		for(int i=0;i<ISLAND;i++){
+			if(i==0){
+				for(int k=0;k<POPULATION/2;k++){
+					int backP = indexCost[ISLAND-1][k];
+					int frontP = indexCost[i][k];
+					for(int f=0;f<FACILITY;f++){
+						data2[i][frontP][f] = temp3[ISLAND-1][backP][f];
+					}
+					for(int f=0;f<FACILITY-1;f++){
+						bay2[i][frontP][f] = temp4[ISLAND-1][backP][f];
+					}
+				}
+			}else {
+				for(int k=0;k<POPULATION/2;k++){
+					int backP = indexCost[i-1][k];
+					int frontP = indexCost[i][k];
+					int p = indexCost[i][k];
+					for(int f=0;f<FACILITY;f++){
+						data2[i][frontP][f] = temp3[ISLAND-1][backP][f];
+					}
+					for(int f=0;f<FACILITY-1;f++){
+						bay2[i][frontP][f] = temp4[ISLAND-1][backP][f];
+					}
+				}
+			} // else end
+
+		} // for end
+
+
+
+
+		} // if migration end
+
+
+  // printf("count: \n");
+  // for(int i=0;i<10;i++){
+  //   printf("%d ", count[i]);
+  // }
+
+  // printf("\nget: \n");
+  // for(int i=0;i<10;i++){
+  //   printf("%d %d\n", getP[i], getP2[i]);
+  // }
+
+  // printf("\ntest: \n");
+  // for(int i=0;i<10;i++){
+  //   printf("%f\n", test[i]);
+  // }
+
+  // printf("\nTEM: \n");
+  // for(int i=0;i<20;i++){
+  //   printf("%d %d %d %d\n", tem[i], tem2[i], yes[i], sss[i]);
+  // }
+  //
+  // printf("\nmutation: \n");
+  // for(int i=0;i<20;i++){
+  //   printf("%d %d %d\n", mutaYes[i], mutaTem[i], mutaTem2[i]);
+  // }
 
   for(int i=0;i<ISLAND;i++){
-    for(int p=0;p<POPULATION;p++){
-      printf("\n交配結果(data2)%d\n", p);
-      for(int f=0;f<FACILITY;f++){
-        printf("%d ", data2[i][p][f]);
-      }
-      printf("\n");
-    }
-  }
+		printf("第%d島嶼(OF): \n", i);
+		for(int p=0;p<POPULATION;p++){
+			printf("%f ", sumCost[i][p]);
+			printf("\n");
+		}
+	}
+
+
+  // for(int i=0;i<ISLAND;i++){
+  //   for(int p=0;p<POPULATION;p++){
+  //     printf("\n交配結果(data2)%d\n", p);
+  //     for(int f=0;f<FACILITY;f++){
+  //       printf("%d ", data2[i][p][f]);
+  //     }
+  //     printf("\n");
+  //   }
+  // }
+
+  // parent to child
+	printf("***chile to parent!!!***\n");
+	for(int i=0;i<ISLAND;i++){
+		printf("island%d\n", i);
+		for(int p=0;p<POPULATION;p++){
+			for(int f=0;f<FACILITY;f++){
+				data[i*POPULATION*FACILITY + p*FACILITY + f] = data2[i][p][f];
+				printf("%d ", data[i*POPULATION*FACILITY + p*FACILITY + f]);
+			}
+			printf("\n");
+		}
+	}
+
+  // 子代BAY
+	for(int i=0;i<ISLAND;i++){
+		for(int p=0;p<POPULATION;p++){
+			for(int f=0;f<FACILITY-1;f++){
+				bay[i*POPULATION*(FACILITY-1) + p*(FACILITY-1) + f] = bay2[i][p][f];
+			}
+		}
+	}
 
 
 
@@ -741,6 +958,12 @@ int main(){
   cudaFree(Gtest);
   cudaFree(Gdistance);
   cudaFree(Gposition);
+  } // GENERATION 結束
+  END = clock();
+  printf("程式執行所花費： %lf S\n", (double)clock()/CLOCKS_PER_SEC);
+  printf("進行運算所花費的時間： %lf S\n", (END - START) / CLOCKS_PER_SEC);
+  // cout << endl << "程式執行所花費：" << (double)clock()/CLOCKS_PER_SEC << " S" ;
+  // cout << endl << "進行運算所花費的時間：" << (END - START) / CLOCKS_PER_SEC << " S" << endl;
   return 0;
 
 }
