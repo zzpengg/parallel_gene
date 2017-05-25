@@ -3,13 +3,13 @@
 #include <time.h>
 #include <math.h>
 
-#define ISLAND 2
-#define POPULATION 10
-#define FACILITY 6
-#define GENERATION 30
+#define ISLAND 10 
+#define POPULATION 50
+#define FACILITY 20 
+#define GENERATION 70 
 #define CROSSOVER 0.6
 #define MUTATION 0.03
-#define MIGRATION 5
+#define MIGRATION 15
 #define INDIVIDUAL 5
 
 #define H 3 // BAY height
@@ -28,7 +28,7 @@ int main(){
 
 
   for(int i=0;i<ISLAND;i++){ // shuffle the sorted facility
-		printf("new island%d\n", i);
+//		printf("new island%d\n", i);
 		for(int p=0;p<POPULATION;p++){
 			for(int t=0;t<FACILITY;t++){
 		    facility[t] = t;
@@ -39,9 +39,9 @@ int main(){
 			// }
 			for(int f=0;f<FACILITY;f++){
 				data[i][p][f] = facility[f];
-				printf("%d ", data[i][p][f]);
+//				printf("%d ", data[i][p][f]);
 			}
-			printf("\n");
+//			printf("\n");
 			for(int b=0;b<FACILITY-1;b++){
 				int j = rand() % 2;
 		    bay[i][p][b] = j;
@@ -50,17 +50,19 @@ int main(){
 	}
   // read ther cost
 	FILE *fPtr;
+	
+	int ttt = FACILITY * (FACILITY-1) / 2;
 
 	fPtr=fopen("cost.txt","r");
 	int cost[FACILITY][FACILITY] = {0};
-	int temp[15][3]; // cost
-	for(int i=0;i<15;i++){
+	int temp[ttt][3]; // cost
+	for(int i=0;i<ttt;i++){
 		for(int a=0;a<3;a++){
 			fscanf(fPtr , "%d " , &temp[i][a]);
 		}
 	}
 	fclose(fPtr);
-	for(int i=0;i<15;i++){ // 2 dimention cost
+	for(int i=0;i<ttt;i++){ // 2 dimention cost
 		cost[temp[i][0]-1][temp[i][1]-1] = temp[i][2];
 	}
 
@@ -262,14 +264,14 @@ int main(){
 	for(int i=0;i<ISLAND;i++){
 		for(int p=0;p<POPULATION;p++){
 			totalPro[i] = totalPro[i] + (1.0 / sumCost[i][p]);
-			printf("%f %f\n", totalPro[i], (1.0 / sumCost[i][p]));
+//			printf("%f %f\n", totalPro[i], (1.0 / sumCost[i][p]));
 		}
 	}
 
 	for(int i=0;i<ISLAND;i++){
 		for(int p=0;p<POPULATION;p++){
 			probability[i][p] = (1.0 / sumCost[i][p]) / totalPro[i] ;
-			printf("%f %f %f \n", probability[i][p], (1.0 / sumCost[i][p]), totalPro[i]);
+//			printf("%f %f %f \n", probability[i][p], (1.0 / sumCost[i][p]), totalPro[i]);
 		}
 	}
 
@@ -297,12 +299,12 @@ int main(){
 	}
 
 	// print probability2 (Roulette)
-	printf("probability2\n");
-	for(int i=0;i<ISLAND;i++){
-		for(int p=0;p<POPULATION;p++){
-			printf("%f ", probability2[i][p]);
-		}
-	}
+//	printf("probability2\n");
+//	for(int i=0;i<ISLAND;i++){
+//		for(int p=0;p<POPULATION;p++){
+//			printf("%f ", probability2[i][p]);
+//		}
+//	}
 	int num=0;
 	printf("\nwill in crossover\n");
 	for(int i=0;i<ISLAND;i++){
@@ -313,7 +315,7 @@ int main(){
 			// �D���ǭǥ��t
 			int tem = rand() % 100;
 			float get = tem * 0.01;
-			printf("get = %f\n", get);
+//			printf("get = %f\n", get);
 			int getP = 0;
 			float tem2 = rand() % 100;
 			float get2 = tem2 * 0.01;
@@ -322,7 +324,7 @@ int main(){
 			for(int p=0;p<POPULATION-1;p++){
 				if(get >= probability2[i][p] && get < probability2[i][p+1]){
 					getP = p+1;
-					printf("getP = %d\n", getP);
+//					printf("getP = %d\n", getP);
 					break;
 				}
 				else if(p==POPULATION-2){
@@ -356,10 +358,10 @@ int main(){
 			for(int f=0;f<FACILITY;f++){
 				data2[i][num][f] = data[i][getP2][f];
 				bay2[i][num][f] = bay[i][getP2][f];
-				printf("%d ", data2[i][num][f]);
+//				printf("%d ", data2[i][num][f]);
 				fprintf(FIN, "%d ", data2[i][num][f]);
 			}
-			printf("\n");
+//			printf("\n");
 			fprintf(FIN, "\n");
 			num++;
 
@@ -389,7 +391,7 @@ int main(){
 
 				for(int c=0;c<4;c++){
 					fprintf(FIN, "%d %d\n", cross[c][0], cross[c][1]);
-					printf("%d %d\n", cross[c][0], cross[c][1]);
+//					printf("%d %d\n", cross[c][0], cross[c][1]);
 				}
 
 
@@ -454,11 +456,11 @@ int main(){
 								}
 							}
 							else{
-								printf("%d ", data2[i][num-1][c]);
+//								printf("%d ", data2[i][num-1][c]);
 								fprintf(FIN, "%d ", data2[i][num-1][c]);
 								c++;
 							}
-							printf("%d ", data2[i][num-1][c]);
+//							printf("%d ", data2[i][num-1][c]);
 							fprintf(FIN, "%d ", data2[i][num-1][c]);
 						}
 						break;
@@ -507,13 +509,13 @@ int main(){
 
 				fprintf(FIN, "\n交配結果\n");
 				for(int f=0;f<FACILITY;f++){
-					printf("%d ", data2[i][num-2][f]);
+//					printf("%d ", data2[i][num-2][f]);
 					fprintf(FIN, "%d ", data2[i][num-2][f]);
 				}
 				fprintf(FIN, "\t");
-				printf("\t");
+//				printf("\t");
 				for(int f=0;f<FACILITY;f++){
-					printf("%d ", data2[i][num-1][f]);
+//					printf("%d ", data2[i][num-1][f]);
 					fprintf(FIN, "%d ", data2[i][num-1][f]);
 				}
 				fprintf(FIN, "\n");
@@ -533,17 +535,17 @@ int main(){
 		} // population end
 	} // island end
 
-	printf("***crossover end***\n");
-	printf("data2[1][0][0] = %d\n", data2[1][0][0]);
-	for(int i=0;i<ISLAND;i++){
-		printf("island%d\n", i);
-		for(int p=0;p<POPULATION;p++){
-			for(int f=0;f<FACILITY;f++){
-				printf("%d ", data2[i][p][f]);
-			}
-			printf("\n");
-		}
-	}
+//	printf("***crossover end***\n");
+//	printf("data2[1][0][0] = %d\n", data2[1][0][0]);
+//	for(int i=0;i<ISLAND;i++){
+//		printf("island%d\n", i);
+//		for(int p=0;p<POPULATION;p++){
+//			for(int f=0;f<FACILITY;f++){
+//				printf("%d ", data2[i][p][f]);
+//			}
+//			printf("\n");
+//		}
+//	}
 
 	// new child
 	// printf("新的子代\n");
@@ -626,12 +628,12 @@ int main(){
 		}
 
 		// print sorted index
-		for(int i=0;i<ISLAND;i++){
-			for(int p=0;p<POPULATION;p++){
-				printf("%d ", indexCost[i][p]);
-			}
-			printf("\n");
-		}
+//		for(int i=0;i<ISLAND;i++){
+//			for(int p=0;p<POPULATION;p++){
+//				printf("%d ", indexCost[i][p]);
+//			}
+//			printf("\n");
+//		}
 
 		int countP = 0;
 		for(int i=0;i<ISLAND;i++){
@@ -724,10 +726,15 @@ int main(){
 	// 		}
 	// 	}
 	// }
+	
+	float minnn = sumCost[0][0];
 
 	for(int i=0;i<ISLAND;i++){
 		fprintf(FIN, "第%d島嶼(OF): \n", i);
 		for(int p=0;p<POPULATION;p++){
+			if(sumCost[i][p] < minnn){
+				minnn = sumCost[i][p];
+			}
 			fprintf(FIN, "%f ", sumCost[i][p]);
 			fprintf(FIN, "\n");
 		}
@@ -751,9 +758,9 @@ int main(){
 		for(int p=0;p<POPULATION;p++){
 			for(int f=0;f<FACILITY;f++){
 				data[i][p][f] = data2[i][p][f];
-				printf("%d ", data[i][p][f]);
+//				printf("%d ", data[i][p][f]);
 			}
-			printf("\n");
+//			printf("\n");
 		}
 	}
 
@@ -766,12 +773,14 @@ int main(){
 		}
 	}
 
-
+	printf("minnn = %f", minnn);
 
 
 
 
 } // GENERATION 結束
+
+	
 
 	fclose(FIN);
 

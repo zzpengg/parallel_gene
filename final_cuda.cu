@@ -4,13 +4,13 @@
 #include <math.h>
 
 
-#define ISLAND 6
-#define POPULATION 10
-#define FACILITY 6
-#define GENERATION 30
+#define ISLAND 10
+#define POPULATION 50
+#define FACILITY 20
+#define GENERATION 10
 #define CROSSOVER 0.6
 #define MUTATION 0.03
-#define MIGRATION 5
+#define MIGRATION 15
 #define INDIVIDUAL 5
 
 #define H 3 // BAY height
@@ -414,8 +414,8 @@ int main(){
   START = clock();
   srand(time(NULL));
 
-  int data[ISLAND*POPULATION*FACILITY];
-  short int bay[ISLAND*POPULATION*(FACILITY-1)]; //bay
+  int data[ISLAND][POPULATION][FACILITY];
+  short int bay[ISLAND][POPULATION][FACILITY-1]; //bay
 
   int facility[FACILITY];
 
@@ -430,13 +430,13 @@ int main(){
 			// 	printf("%d ", facility[t]);
 			// }
 			for(int f=0;f<FACILITY;f++){
-				data[i*POPULATION*FACILITY+p*FACILITY+f] = facility[f];
-				printf("%d ", data[i*POPULATION*FACILITY+p*FACILITY+f]);
+				data[i][p][f] = facility[f];
+				printf("%d ", data[i][p][f]);
 			}
 			printf("\n");
 			for(int b=0;b<FACILITY-1;b++){
 				int j = rand() % 2;
-		    bay[i*POPULATION*FACILITY+p*(FACILITY-1)+b] = j;
+		    bay[i][p][b] = j;
 			}
 		}
 	}
@@ -445,7 +445,7 @@ int main(){
 	for(int i=0;i<ISLAND;i++){
 		for(int p=0;p<POPULATION;p++){
 			for(int f=0;f<FACILITY;f++){
-				printf("%d ", data[i*POPULATION*FACILITY+p*FACILITY+f]);
+				printf("%d ", data[i][p][f]);
 			}
 			printf("\n");
 		}
@@ -456,7 +456,7 @@ int main(){
 	for(int i=0;i<ISLAND;i++){
 		for(int p=0;p<POPULATION;p++){
 			for(int f=0;f<FACILITY-1;f++){
-				printf("%d ", bay[i*POPULATION*(FACILITY-1)+p*(FACILITY-1)+f]);
+				printf("%d ", bay[i][p][f]);
 			}
 			printf("\n");
 		}
@@ -474,22 +474,22 @@ int main(){
   // read ther cost
 	FILE *fPtr;
 
+  int ttt = FACILITY * (FACILITY-1) / 2;
+
 	fPtr=fopen("cost.txt","r");
-	int cost[FACILITY*FACILITY] = {0};
-	int temp[15*3]; // cost
-	for(int i=0;i<15;i++){
-		for(int a=0;a<3;a++){
-			fscanf(fPtr , "%d " , &temp[i*3 + a]);
-		}
+	int cost[FACILITY][FACILITY] = {0};
+	int temp[ttt][3]; // cost
+	for(int i=0;i<ttt;i++){
+		fscanf(fPtr , "%d %d %d" , &temp[i][0], &temp[i][1], &temp[i][2]);
 	}
 	fclose(fPtr);
-	for(int i=0;i<15;i++){ // 2 dimention cost
-		cost[ (temp[i*3]-1)*FACILITY + temp[i*3+1]-1] = temp[ i*3 + 2];
+	for(int i=0;i<ttt;i++){ // 2 dimention cost
+		cost[ temp[i][0]-1 ][ temp[i][1]-1] = temp[i][2];
 	}
   printf("cost: \n");
   for(int i=0;i<FACILITY;i++){ // 2 dimention cost
     for(int j=0;j<FACILITY;j++){
-      printf("%d ", cost[i*FACILITY + j]);
+      printf("%d ", cost[i][j]);
     }
     printf("\n");
 	}
@@ -821,12 +821,12 @@ int main(){
 		}
 
 		// print sorted index
-		for(int i=0;i<ISLAND;i++){
-			for(int p=0;p<POPULATION;p++){
-				printf("%d ", indexCost[i][p]);
-			}
-			printf("\n");
-		}
+		// for(int i=0;i<ISLAND;i++){
+		// 	for(int p=0;p<POPULATION;p++){
+		// 		printf("%d ", indexCost[i][p]);
+		// 	}
+		// 	printf("\n");
+		// }
 
 		int countP = 0;
 		for(int i=0;i<ISLAND;i++){
@@ -905,14 +905,26 @@ int main(){
   // for(int i=0;i<20;i++){
   //   printf("%d %d %d\n", mutaYes[i], mutaTem[i], mutaTem2[i]);
   // }
-
+  float answer[3];
+  answer[0] = 0;
+  answer[1] = 0;
+  answer[2] = sumCost[0][0];
   for(int i=0;i<ISLAND;i++){
-		printf("第%d島嶼(OF): \n", i);
+		// printf("第%d島嶼(OF): \n", i);
 		for(int p=0;p<POPULATION;p++){
-			printf("%f ", sumCost[i][p]);
-			printf("\n");
+			// printf("%f ", sumCost[i][p]);
+      if(sumCost[i][p] < answer[2]){
+        answer[0] = i;
+        answer[1] = p;
+        answer[2] = sumCost[i][p];
+      }
+			// printf("\n");
 		}
 	}
+
+
+  printf("最小: %.0f %.0f = %f\n", answer[0], answer[1], answer[2]);
+
 
 
   // for(int i=0;i<ISLAND;i++){
@@ -926,15 +938,15 @@ int main(){
   // }
 
   // parent to child
-	printf("***chile to parent!!!***\n");
+	// printf("***chile to parent!!!***\n");
 	for(int i=0;i<ISLAND;i++){
-		printf("island%d\n", i);
+		// printf("island%d\n", i);
 		for(int p=0;p<POPULATION;p++){
 			for(int f=0;f<FACILITY;f++){
-				data[i*POPULATION*FACILITY + p*FACILITY + f] = data2[i][p][f];
-				printf("%d ", data[i*POPULATION*FACILITY + p*FACILITY + f]);
+				data[i][p][f] = data2[i][p][f];
+				// printf("%d ", data[i][p][f]);
 			}
-			printf("\n");
+			// printf("\n");
 		}
 	}
 
@@ -942,23 +954,34 @@ int main(){
 	for(int i=0;i<ISLAND;i++){
 		for(int p=0;p<POPULATION;p++){
 			for(int f=0;f<FACILITY-1;f++){
-				bay[i*POPULATION*(FACILITY-1) + p*(FACILITY-1) + f] = bay2[i][p][f];
+				bay[i][p][f] = bay2[i][p][f];
 			}
 		}
 	}
 
-
-
-
-
+  cudaFree(GA);
+  cudaFree(GB);
+  cudaFree(Gdata2);
+  cudaFree(Gbay2);
+  cudaFree(GsumCost);
+  cudaFree(GminCost);
+  cudaFree(GtotalCost);
   cudaFree(Gtem);
   cudaFree(Gtem2);
   cudaFree(GetP);
   cudaFree(GetP2);
   cudaFree(Gtest);
+  cudaFree(Gprobability);
+  cudaFree(Gprobability2);
+  cudaFree(Gyes);
+  cudaFree(Gsss);
+  cudaFree(GmutaYes);
+  cudaFree(GmutaTem);
+  cudaFree(GmutaTem2);
   cudaFree(Gdistance);
   cudaFree(Gposition);
   } // GENERATION 結束
+
   END = clock();
   printf("程式執行所花費： %lf S\n", (double)clock()/CLOCKS_PER_SEC);
   printf("進行運算所花費的時間： %lf S\n", (END - START) / CLOCKS_PER_SEC);
