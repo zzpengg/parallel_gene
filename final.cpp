@@ -3,34 +3,34 @@
 #include <time.h>
 #include <math.h>
 
-#define ISLAND 10 
+#define ISLAND 10
 #define POPULATION 50
-#define FACILITY 20 
-#define GENERATION 70 
+#define FACILITY 20
+#define GENERATION 70
 #define CROSSOVER 0.6
 #define MUTATION 0.03
 #define MIGRATION 15
 #define INDIVIDUAL 5
 
-#define H 3 // BAY height
-#define W 2 // BAY width
+#define H 10 // BAY height
+#define W 15 // BAY width
 
-void shuffle(int* facility);
+void shuffle(short* facility);
 
 int main(){
 
 	srand(time(NULL));
 
-	int data[ISLAND][POPULATION][FACILITY]; // facility
-	short int bay[ISLAND][POPULATION][FACILITY-1]; //bay
+	short data[ISLAND][POPULATION][FACILITY]; // facility
+	bool bay[ISLAND][POPULATION][FACILITY-1]; //bay
 
-	int facility[FACILITY];
+	short facility[FACILITY];
 
 
   for(int i=0;i<ISLAND;i++){ // shuffle the sorted facility
 //		printf("new island%d\n", i);
 		for(int p=0;p<POPULATION;p++){
-			for(int t=0;t<FACILITY;t++){
+			for(short t=0;t<FACILITY;t++){
 		    facility[t] = t;
 			}
 			shuffle(facility);
@@ -43,23 +43,21 @@ int main(){
 			}
 //			printf("\n");
 			for(int b=0;b<FACILITY-1;b++){
-				int j = rand() % 2;
+				bool j = rand() % 2;
 		    bay[i][p][b] = j;
 			}
 		}
 	}
   // read ther cost
 	FILE *fPtr;
-	
-	int ttt = FACILITY * (FACILITY-1) / 2;
+
+	int ttt = FACILITY * (FACILITY-1);
 
 	fPtr=fopen("cost.txt","r");
 	int cost[FACILITY][FACILITY] = {0};
 	int temp[ttt][3]; // cost
 	for(int i=0;i<ttt;i++){
-		for(int a=0;a<3;a++){
-			fscanf(fPtr , "%d " , &temp[i][a]);
-		}
+			fscanf(fPtr , "%d %d %d" , &temp[i][0], &temp[i][1], &temp[i][2]);
 	}
 	fclose(fPtr);
 	for(int i=0;i<ttt;i++){ // 2 dimention cost
@@ -306,9 +304,9 @@ int main(){
 //		}
 //	}
 	int num=0;
-	printf("\nwill in crossover\n");
+//	printf("\nwill in crossover\n");
 	for(int i=0;i<ISLAND;i++){
-		printf("\ncrossver island = %d\n", i);
+//		printf("\ncrossver island = %d\n", i);
 		fprintf(FIN, "第%d島嶼: \n", i);
 		num = 0;
 		for(int n=0;n<POPULATION/2;n++){
@@ -423,7 +421,7 @@ int main(){
 					}
 				}
 
-				printf("\ncrossover!!\n");
+//				printf("\ncrossover!!\n");
 				fprintf(FIN, "有%d個一樣\n", count);
 				switch (count) {
 					case 0: // �������@��
@@ -531,7 +529,7 @@ int main(){
 			}else {
 				fprintf(FIN, "沒有交配\n");
 			}
-			printf("\ncrossover end\n");
+//			printf("\ncrossover end\n");
 		} // population end
 	} // island end
 
@@ -560,9 +558,9 @@ int main(){
 	// }
 
 	// mutation facility
-	printf("\nready to mutation\n");
+//	printf("\nready to mutation\n");
 	for(int i=0;i<ISLAND;i++){
-		printf("\nmutation%d\n", i);
+//		printf("\nmutation%d\n", i);
 		for(int p=0;p<POPULATION;p++){
 			int t = rand() % 100;
 			float yes = t * 0.01;
@@ -581,9 +579,9 @@ int main(){
 	}
 
 	// mutation bay
-	printf("\nready to mutation bay\n");
+//	printf("\nready to mutation bay\n");
 	for(int i=0;i<ISLAND;i++){
-		printf("mutation bay = %d\n", i);
+//		printf("mutation bay = %d\n", i);
 		for(int p=0;p<POPULATION;p++){
 			int t = rand() % 100;
 			float yes = t * 0.01;
@@ -600,7 +598,7 @@ int main(){
 
 	// migration
 	if( (g+1) % MIGRATION == 0 && (g+1) != 0 && ISLAND > 1){
-		printf("***migration***\n");
+//		printf("***migration***\n");
 		fprintf(FIN, "***migration***\n");
 
 		int temp3[ISLAND][POPULATION/2][FACILITY];
@@ -726,7 +724,7 @@ int main(){
 	// 		}
 	// 	}
 	// }
-	
+
 	float minnn = sumCost[0][0];
 
 	for(int i=0;i<ISLAND;i++){
@@ -752,9 +750,9 @@ int main(){
 	}
 
 	// parent to child
-	printf("***chile to parent!!!***\n");
+//	printf("***chile to parent!!!***\n");
 	for(int i=0;i<ISLAND;i++){
-		printf("island%d\n", i);
+//		printf("island%d\n", i);
 		for(int p=0;p<POPULATION;p++){
 			for(int f=0;f<FACILITY;f++){
 				data[i][p][f] = data2[i][p][f];
@@ -773,25 +771,50 @@ int main(){
 		}
 	}
 
-	printf("minnn = %f", minnn);
+	int answerPos[2];
+  float answer;
+  answerPos[0] = 0;
+  answerPos[1] = 0;
+  answer = sumCost[0][0];
+  for(int i=0;i<ISLAND;i++){
+		// printf("第%d島嶼(OF): \n", i);
+		for(int p=0;p<POPULATION;p++){
+			// printf("%f ", sumCost[i][p]);
+      if(sumCost[i][p] < answer){
+        answerPos[0] = i;
+        answerPos[1] = p;
+        answer = sumCost[i][p];
+      }
+			// printf("\n");
+		}
+	}
+
+  for(int i=0;i<FACILITY;i++){
+    printf("%d ", data2[ answerPos[0] ][ answerPos[1] ][i]);
+  }
+  printf("\n");
+  for(int i=0;i<FACILITY-1;i++){
+    printf("%d ", bay2[ answerPos[0] ][ answerPos[1] ][i]);
+  }
+  printf("最小: %d %d = %f\n", answerPos[0], answerPos[1], answer);
 
 
 
 
 } // GENERATION 結束
 
-	
+
 
 	fclose(FIN);
 
 	return 0;
 }
 
-void shuffle(int* facility) { // ���ñƧǦn��facility
-    int i;
+void shuffle(short* facility) { // ���ñƧǦn��facility
+    short i;
     for(i = 0; i < FACILITY; i++) {
-        int j = rand() % FACILITY;
-        int tmp = facility[i];
+        short j = rand() % FACILITY;
+        short tmp = facility[i];
         facility[i] = facility[j];
         facility[j] = tmp;
     }
