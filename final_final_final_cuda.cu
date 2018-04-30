@@ -552,26 +552,6 @@ int main(){
     bool bay[ISLAND][POPULATION][FACILITY-1];
     cudaMemcpy(bay, GB, ISLAND*POPULATION*(FACILITY-1)*sizeof(bool), cudaMemcpyDeviceToHost);
 
-    // print data
-    // for(int i=0;i<ISLAND;i++){
-    //     for(int j=0;j<POPULATION;j++){
-    //         for(int k=0;k<FACILITY;k++){
-    //             printf("%hu ", data[i][j][k]);
-    //         }
-    //         printf("\n");
-    //     }
-    // }
-
-    // print bay
-    // for(int i=0;i<ISLAND;i++){
-    //     for(int j=0;j<POPULATION;j++){
-    //         for(int k=0;k<FACILITY-1;k++){
-    //             printf("%d ", bay[i][j][k]);
-    //         }
-    //         printf("\n");
-    //     }
-    // }
-
     FILE *fPtr;
 
     int ttt = FACILITY * (FACILITY-1) ;

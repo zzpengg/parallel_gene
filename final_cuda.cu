@@ -7,7 +7,7 @@
 #define ISLAND 10
 #define POPULATION 50
 #define FACILITY 20
-#define GENERATION 70
+#define GENERATION 10
 #define CROSSOVER 0.6
 #define MUTATION 0.03
 #define MIGRATION 15
@@ -16,17 +16,17 @@
 #define H 15 // BAY height
 #define W 10 // BAY width
 
-void shuffle(short* facility);
+void shuffle(int* facility);
 
-__global__ void calPosition(short *data, bool *bay, float *position){
+__global__ void calPosition(int *data, short int *bay, float *position){
 
-  short b=blockIdx.x;       //區塊索引 == ISLAND
-  short t=threadIdx.x;      //執行緒索引 == POPULATION
-  short n=blockDim.x;       //區塊中包含的執行緒數目 == num of ISLAND
-  short x=b*n+t;
+  int b=blockIdx.x;       //區塊索引 == ISLAND
+  int t=threadIdx.x;      //執行緒索引 == POPULATION
+  int n=blockDim.x;       //區塊中包含的執行緒數目 == num of ISLAND
+  int x=b*n+t;
 
-  short posit = x * FACILITY;
-  short bayposit = x * (FACILITY-1);
+  int posit = x * FACILITY;
+  int bayposit = x * (FACILITY-1);
   // int posit=b*POPULATION*FACILITY+t*FACILITY;            //執行緒在陣列中對應的位置
   // int posofposit = b*POPULATION*FACILITY*2+t*FACILITY*2;
 
@@ -35,9 +35,9 @@ __global__ void calPosition(short *data, bool *bay, float *position){
   }
 
 
-			short len = 1;
-			short next = 0;
-			for(short f=0;f<FACILITY;f++){
+			int len = 1;
+			int next = 0;
+			for(int f=0;f<FACILITY;f++){
 				if(bay[bayposit+f] == 0){
 					len = len + 1;
 				}
@@ -47,7 +47,7 @@ __global__ void calPosition(short *data, bool *bay, float *position){
 					}
 					float x = W / 2.0 + next;
 
-					for(short j=0;j<len;j++){
+					for(int j=0;j<len;j++){
 
 						position[posit*2+(f+j-len+1)*2] = x;
 
@@ -62,14 +62,14 @@ __global__ void calPosition(short *data, bool *bay, float *position){
 			}
 }
 
-__global__ void calDistance(short *data, float *position, float *distance){
+__global__ void calDistance(int *data, float *position, float *distance){
 
-  short b=blockIdx.x;       //區塊索引 == ISLAND
-  short t=threadIdx.x;      //執行緒索引 == POPULATION
-  short n=blockDim.x;       //區塊中包含的執行緒數目 == num of ISLAND
-  short x=b*n+t;
+  int b=blockIdx.x;       //區塊索引 == ISLAND
+  int t=threadIdx.x;      //執行緒索引 == POPULATION
+  int n=blockDim.x;       //區塊中包含的執行緒數目 == num of ISLAND
+  int x=b*n+t;
 
-  short posit = x * FACILITY;
+  int posit = x * FACILITY;
 
   // int posit=b*POPULATION*FACILITY+t*FACILITY;            //執行緒在陣列中對應的位置
   // int posofposit = b*POPULATION*FACILITY*2+t*FACILITY*2;
@@ -79,18 +79,18 @@ __global__ void calDistance(short *data, float *position, float *distance){
   }
 
 
-  for(short f=0;f<FACILITY;f++){
+  for(int f=0;f<FACILITY;f++){
     // printf("\ndistance calculate facility%d\n", f);
-    for(short j=f+1;j<FACILITY;j++){
+    for(int j=f+1;j<FACILITY;j++){
 
       float x1 = position[ (posit + f)*2 ];
       float y1 = position[ (posit + f)*2 + 1];
 
-      short x = data[ posit + f ];
+      int x = data[ posit + f ];
       // printf("x = %d\n", x);
       float x2 = position[ (posit + j)*2 ];
       float y2 = position[ (posit + j)*2 + 1];
-      short y = data[ posit + j ];
+      int y = data[ posit + j ];
       // printf("y= %d\n", y);
       if(y2 > y1){
         distance[ (posit + x)*FACILITY + y] = sqrt( (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1) ) ;
@@ -107,14 +107,14 @@ __global__ void calDistance(short *data, float *position, float *distance){
 
 __global__ void calTotalcost(float *distance, int *cost, float *totalCost){
 
-  short b=blockIdx.x;       //區塊索引 == ISLAND
-  short t=threadIdx.x;      //執行緒索引 == POPULATION
-  short n=blockDim.x;       //區塊中包含的執行緒數目 == num of ISLAND
-  short x=b*n+t;
+  int b=blockIdx.x;       //區塊索引 == ISLAND
+  int t=threadIdx.x;      //執行緒索引 == POPULATION
+  int n=blockDim.x;       //區塊中包含的執行緒數目 == num of ISLAND
+  int x=b*n+t;
 
-  short posit = x * FACILITY;
+  int posit = x * FACILITY;
 
-  // short posit=b*POPULATION*FACILITY+t*FACILITY;            //執行緒在陣列中對應的位置
+  // int posit=b*POPULATION*FACILITY+t*FACILITY;            //執行緒在陣列中對應的位置
   // int posofposit = b*POPULATION*FACILITY*2+t*FACILITY*2;
 
   // for(int i=0;i<ISLAND*POPULATION*FACILITY*FACILITY;i++){
@@ -122,8 +122,8 @@ __global__ void calTotalcost(float *distance, int *cost, float *totalCost){
   // }
 
 
-	for(short f=0;f<FACILITY;f++){
-		for(short j=0;j<FACILITY;j++){
+	for(int f=0;f<FACILITY;f++){
+		for(int j=0;j<FACILITY;j++){
 			totalCost[ (posit + f)*FACILITY + j] = cost[f*FACILITY + j] * distance[ (posit + f)*FACILITY + j];
 		}
 	}
@@ -132,12 +132,12 @@ __global__ void calTotalcost(float *distance, int *cost, float *totalCost){
 
 __global__ void calOF(float *sumCost, float *minCost, float *totalCost){
 
-  short b=blockIdx.x;       //區塊索引 == ISLAND
-  short t=threadIdx.x;      //執行緒索引 == POPULATION
-  short n=blockDim.x;       //區塊中包含的執行緒數目 == num of ISLAND
-  short x=b*n+t;
+  int b=blockIdx.x;       //區塊索引 == ISLAND
+  int t=threadIdx.x;      //執行緒索引 == POPULATION
+  int n=blockDim.x;       //區塊中包含的執行緒數目 == num of ISLAND
+  int x=b*n+t;
 
-  short posit = x * FACILITY;
+  int posit = x * FACILITY;
 
   // calculate OF
 
@@ -145,8 +145,8 @@ __global__ void calOF(float *sumCost, float *minCost, float *totalCost){
 	minCost[x/POPULATION * 2] = 0.0;
 
 
-			for(short f=0;f<FACILITY;f++){
-				for(short j=0;j<FACILITY;j++){
+			for(int f=0;f<FACILITY;f++){
+				for(int j=0;j<FACILITY;j++){
 					sumCost[x] += totalCost[ (posit + f)*FACILITY + j];
 				}
 			}
@@ -164,10 +164,10 @@ __global__ void calOF(float *sumCost, float *minCost, float *totalCost){
 
 __global__ void calProbability(float *probability, float *totalPro, float *sumCost){
 
-  short b=blockIdx.x;       //區塊索引 == ISLAND
-  short t=threadIdx.x;      //執行緒索引 == POPULATION
-  short n=blockDim.x;       //區塊中包含的執行緒數目 == num of ISLAND
-  short x=b*n+t;
+  int b=blockIdx.x;       //區塊索引 == ISLAND
+  int t=threadIdx.x;      //執行緒索引 == POPULATION
+  int n=blockDim.x;       //區塊中包含的執行緒數目 == num of ISLAND
+  int x=b*n+t;
 
 
   probability[x] = (1.0 / sumCost[x]) / (totalPro[ x / POPULATION ]) ;
@@ -175,54 +175,53 @@ __global__ void calProbability(float *probability, float *totalPro, float *sumCo
 }
 
 
-__global__ void crossOver(float *probability2, short *data, bool *bay, short *data2, bool *bay2, int *tem, int *tem2, int *Gyes, int *Gsss, int *Gcount, int *GGgetP, int *GGgetP2, float *test){
+__global__ void crossOver(float *probability2, int *data, short int *bay, int *data2, short int *bay2, int *tem, int *tem2, int *Gyes, int *Gsss, int *Gcount, int *GGgetP, int *GGgetP2, float *test){
 
-  short b=blockIdx.x;       //區塊索引 == ISLAND
-  short t=threadIdx.x;      //執行緒索引 == POPULATION
-  short n=blockDim.x;       //區塊中包含的執行緒數目 == num of ISLAND
-  short x=b*n+t;
+  int b=blockIdx.x;       //區塊索引 == ISLAND
+  int t=threadIdx.x;      //執行緒索引 == POPULATION
+  int n=blockDim.x;       //區塊中包含的執行緒數目 == num of ISLAND
+  int x=b*n+t;
 
-  short posit = x * 2 * FACILITY;
-  short posit2 = (2*x+1) * FACILITY;
-  short bayposit = x * 2 * (FACILITY-1);
-  short bayposit2 = (2*x+1) * (FACILITY-1);
+  int posit = x * 2 * FACILITY;
+  int posit2 = (2*x+1) * FACILITY;
+  int bayposit = x * 2 * (FACILITY-1);
+  int bayposit2 = (2*x+1) * (FACILITY-1);
 
-			float get = (tem[x] % 10000) * 0.0001;
+			float get = (tem[x] % 100) * 0.01;
       test[x] = 0.0;
-      tem[x] = tem[x] % 10000;
-			short getP = 0;
-			float get2 = tem2[x] % 10000 * 0.0001;
-      tem2[x] = tem2[x] % 10000;
-			short getP2 = 0;
+      tem[x] = tem[x] % 100;
+			int getP = 0;
+			float get2 = tem2[x] % 100 * 0.01;
+      tem2[x] = tem2[x] % 100;
+			int getP2 = 0;
       GGgetP2[x] = -1;
-			for(short p=0;p<POPULATION-1;p++){
+			for(int p=0;p<POPULATION-1;p++){
 				if(get >= probability2[ (x/POPULATION)*POPULATION + p ] && get < probability2[ (x/POPULATION)*POPULATION + p+1 ]){
 					getP = p+1;
-          GGgetP[x] = (x/POPULATION)*POPULATION + p;
+          GGgetP2[x] = (x/POPULATION)*POPULATION + p;
 					break;
 				}
 				else if(p==POPULATION-2){
 					getP = p+1;
-          GGgetP[x] = (x/POPULATION)*POPULATION + p;
 					break;
 				}
 			}
       test[x] = probability2[ (x/POPULATION)*POPULATION + 1];
 
-			for(short p=0;p<POPULATION-1;p++){
+			for(int p=0;p<POPULATION-1;p++){
 				if(get2 >= probability2[x/POPULATION*POPULATION + p] && get2 < probability2[x/POPULATION*POPULATION + p+1]){
 					getP2 = p+1;
-          GGgetP2[x] = (x/POPULATION)*POPULATION + p;
+
 					break;
 				}
 				else if(p==POPULATION-2){
 					getP2 = p+1;
-          GGgetP2[x] = (x/POPULATION)*POPULATION + p;
+
 					break;
 				}
 			}
 
-			for(short f=0;f<FACILITY;f++){
+			for(int f=0;f<FACILITY;f++){
 				data2[ posit + f] = data[ x/POPULATION*POPULATION*FACILITY + getP*FACILITY + f];
 				bay2[ (2 * x)*(FACILITY-1) + f] = bay[ x/POPULATION*POPULATION*(FACILITY-1) + getP*(FACILITY-1) + f];
 			}
@@ -230,19 +229,19 @@ __global__ void crossOver(float *probability2, short *data, bool *bay, short *da
 
 
 
-			for(short f=0;f<FACILITY;f++){
+			for(int f=0;f<FACILITY;f++){
 				data2[ posit2 + f ] = data[x/POPULATION*POPULATION*FACILITY + getP2*FACILITY + f];
 				bay2[ (2 * x + 1)*(FACILITY-1) + f] = bay[x/POPULATION*POPULATION*(FACILITY-1) + getP2*(FACILITY-1) + f];
 			}
 
 
-      int tt = Gyes[x] % 10000;
-			float yes = tt * 0.0001;
+      int tt = Gyes[x] % 100;
+			float yes = tt * 0.01;
       Gyes[x] = tt;
 
 			if(yes <= CROSSOVER){
 
-				short sss = FACILITY - 1;
+				int sss = FACILITY - 1;
         int seq = Gsss[x] % sss;
         Gsss[x] = seq;
 
@@ -260,9 +259,9 @@ __global__ void crossOver(float *probability2, short *data, bool *bay, short *da
 
 
 
-				short temp = data2[ posit2 + seq];
+				int temp = data2[ posit2 + seq];
 
-				short temp2 = data2[posit2 + seq+1];
+				int temp2 = data2[posit2 + seq+1];
 
 				data2[ posit2 + seq] = data2[ posit + seq];
 
@@ -273,8 +272,8 @@ __global__ void crossOver(float *probability2, short *data, bool *bay, short *da
 
 
 
-				short count = 0;
-				for(short c=0;c<4;c++){
+				int count = 0;
+				for(int c=0;c<4;c++){
 					if(cross[c][0] == cross[c][1]){
 						count++;
 					}
@@ -283,7 +282,7 @@ __global__ void crossOver(float *probability2, short *data, bool *bay, short *da
 
 				switch (count) {
 					case 0:
-						for(short c=0;c<FACILITY;c++){
+						for(int c=0;c<FACILITY;c++){
 							if(c != seq){
 								if(data2[posit + c] == cross[0][1]){
 									data2[ posit + c] = cross[0][0];
@@ -297,7 +296,7 @@ __global__ void crossOver(float *probability2, short *data, bool *bay, short *da
 							}
 						}
 
-						for(short c=0;c<FACILITY;c++){
+						for(int c=0;c<FACILITY;c++){
 							if(c != seq){
 								if(data2[posit2 + c] == cross[0][0]){
 									data2[ posit2 + c] = cross[0][1];
@@ -313,15 +312,15 @@ __global__ void crossOver(float *probability2, short *data, bool *bay, short *da
 						break;
 					case 1:
 						temp = 99;
-						for(short c=0;c<4;c++){
+						for(int c=0;c<4;c++){
 							if(cross[c][0] == cross[c][1]){
 								temp = cross[c][0];
 							}
 						}
 
-						for(short c=0;c<4;c++){
+						for(int c=0;c<4;c++){
 							if(cross[c][0] != temp && cross[c][1] != temp){
-								for(short f=0;f<FACILITY;f++){
+								for(int f=0;f<FACILITY;f++){
 									if(f != seq){
 										if(data2[posit + f] == cross[c][1]){
 											data2[ posit + f] = cross[c][0];
@@ -334,9 +333,9 @@ __global__ void crossOver(float *probability2, short *data, bool *bay, short *da
 							}
 						}
 
-						for(short c=0;c<4;c++){
+						for(int c=0;c<4;c++){
 							if(cross[c][0] != temp && cross[c][1] != temp){
-								for(short f=0;f<FACILITY;f++){
+								for(int f=0;f<FACILITY;f++){
 									if(f != seq){
 										if(data2[posit2 + f] == cross[c][0]){
 											data2[ posit2 + f] = cross[c][1];
@@ -370,7 +369,7 @@ __global__ void crossOver(float *probability2, short *data, bool *bay, short *da
 
 }
 
-__global__ void mutation(short *data2, int *mutaYes, int *mutaTem, int *mutaTem2){
+__global__ void mutation(int *data2, int *mutaYes, int *mutaTem, int *mutaTem2){
   int b=blockIdx.x;       //區塊索引 == ISLAND
   int t=threadIdx.x;      //執行緒索引 == POPULATION
   int n=blockDim.x;       //區塊中包含的執行緒數目 == num of ISLAND
@@ -378,30 +377,30 @@ __global__ void mutation(short *data2, int *mutaYes, int *mutaTem, int *mutaTem2
 
   int posit = x * FACILITY;
 
-  float yes = (mutaYes[x] % 10000) * 0.0001;
+  float yes = (mutaYes[x] % 100) * 0.01;
 	// fprintf(FIN, "取得%f \n", yes);
 	if(yes < MUTATION){
 		// fprintf(FIN, "第%d突變\n", p);
-		short get = mutaTem[x] % FACILITY;
-		short get2 = mutaTem2[x] % FACILITY;
-		short temp = data2[posit + get];
+		int get = mutaTem[x] % FACILITY;
+		int get2 = mutaTem2[x] % FACILITY;
+		int temp = data2[posit + get];
 		data2[posit + get] = data2[posit + get2];
 		data2[posit + get2] = temp;
 	}else {
 	}
 }
 
-__global__ void mutationBay(bool *bay2, int *mutaBayYes, int *mutaBayTem){
-  short b=blockIdx.x;       //區塊索引 == ISLAND
-  short t=threadIdx.x;      //執行緒索引 == POPULATION
-  short n=blockDim.x;       //區塊中包含的執行緒數目 == num of ISLAND
-  short x=b*n+t;
+__global__ void mutationBay(short int *bay2, int *mutaBayYes, int *mutaBayTem){
+  int b=blockIdx.x;       //區塊索引 == ISLAND
+  int t=threadIdx.x;      //執行緒索引 == POPULATION
+  int n=blockDim.x;       //區塊中包含的執行緒數目 == num of ISLAND
+  int x=b*n+t;
 
-  short posit = x * (FACILITY - 1);
+  int posit = x * (FACILITY - 1);
 
-	float yes = mutaBayYes[x] % 10000 * 0.0001 ;
+	float yes = mutaBayYes[x] % 100 * 0.01 ;
 	if(yes < MUTATION){
-		short get = mutaBayTem[x] % (FACILITY - 1);
+		int get = mutaBayTem[x] % (FACILITY - 1);
 		if(bay2[posit + get] == 0){
 			bay2[posit + get] = 1;
 		}else {
@@ -411,59 +410,58 @@ __global__ void mutationBay(bool *bay2, int *mutaBayYes, int *mutaBayTem){
 }
 
 int main(){
-
   double START,END;
   START = clock();
   srand(time(NULL));
 
-  short data[ISLAND][POPULATION][FACILITY];
-  bool bay[ISLAND][POPULATION][FACILITY-1]; //bay
+  int data[ISLAND][POPULATION][FACILITY];
+  short int bay[ISLAND][POPULATION][FACILITY-1]; //bay
 
-  short facility[FACILITY];
+  int facility[FACILITY];
 
-  for(short i=0;i<ISLAND;i++){ // shuffle the sorted facility
-		// printf("new island%d\n", i);
-		for(short p=0;p<POPULATION;p++){
-			for(short t=0;t<FACILITY;t++){
+  for(int i=0;i<ISLAND;i++){ // shuffle the sorted facility
+		printf("new island%d\n", i);
+		for(int p=0;p<POPULATION;p++){
+			for(int t=0;t<FACILITY;t++){
 		    facility[t] = t;
 			}
 			shuffle(facility);
 			// for(int t=0;t<FACILITY;t++){
 			// 	printf("%d ", facility[t]);
 			// }
-			for(short f=0;f<FACILITY;f++){
+			for(int f=0;f<FACILITY;f++){
 				data[i][p][f] = facility[f];
-				// printf("%d ", data[i][p][f]);
+				printf("%d ", data[i][p][f]);
 			}
-			// printf("\n");
-			for(short b=0;b<FACILITY-1;b++){
-				bool j = rand() % 2;
+			printf("\n");
+			for(int b=0;b<FACILITY-1;b++){
+				int j = rand() % 2;
 		    bay[i][p][b] = j;
 			}
 		}
 	}
 
-  // printf("data\n");
-	// for(int i=0;i<ISLAND;i++){
-	// 	for(int p=0;p<POPULATION;p++){
-	// 		for(int f=0;f<FACILITY;f++){
-	// 			printf("%d ", data[i][p][f]);
-	// 		}
-	// 		printf("\n");
-	// 	}
-	// 	printf("\n");
-	// }
+  printf("data\n");
+	for(int i=0;i<ISLAND;i++){
+		for(int p=0;p<POPULATION;p++){
+			for(int f=0;f<FACILITY;f++){
+				printf("%d ", data[i][p][f]);
+			}
+			printf("\n");
+		}
+		printf("\n");
+	}
 
-  // printf("bay\n");
-	// for(int i=0;i<ISLAND;i++){
-	// 	for(int p=0;p<POPULATION;p++){
-	// 		for(int f=0;f<FACILITY-1;f++){
-	// 			printf("%d ", bay[i][p][f]);
-	// 		}
-	// 		printf("\n");
-	// 	}
-	// 	printf("\n");
-	// }
+  printf("bay\n");
+	for(int i=0;i<ISLAND;i++){
+		for(int p=0;p<POPULATION;p++){
+			for(int f=0;f<FACILITY-1;f++){
+				printf("%d ", bay[i][p][f]);
+			}
+			printf("\n");
+		}
+		printf("\n");
+	}
 
   // int *GA;
   // short int *GB;
@@ -476,40 +474,40 @@ int main(){
   // read ther cost
 	FILE *fPtr;
 
-  short ttt = FACILITY * (FACILITY-1) ;
+  int ttt = FACILITY * (FACILITY-1);
 
 	fPtr=fopen("cost.txt","r");
-	short cost[FACILITY][FACILITY] = {0};
-	short temp[ttt][3]; // cost
-	for(short i=0;i<ttt;i++){
+	int cost[FACILITY][FACILITY] = {0};
+	int temp[ttt][3]; // cost
+	for(int i=0;i<ttt;i++){
 		fscanf(fPtr , "%d %d %d" , &temp[i][0], &temp[i][1], &temp[i][2]);
 	}
 	fclose(fPtr);
-	for(short i=0;i<ttt;i++){ // 2 dimention cost
+	for(int i=0;i<ttt;i++){ // 2 dimention cost
 		cost[ temp[i][0]-1 ][ temp[i][1]-1] = temp[i][2];
 	}
-  // printf("cost: \n");
-  // for(int i=0;i<FACILITY;i++){ // 2 dimention cost
-  //   for(int j=0;j<FACILITY;j++){
-  //     printf("%d ", cost[i][j]);
-  //   }
-  //   printf("\n");
-	// }
-  short *Gcost;
-  cudaMalloc((void**)&Gcost, FACILITY*FACILITY*sizeof(short));
-  cudaMemcpy(Gcost, cost, FACILITY*FACILITY*sizeof(short), cudaMemcpyHostToDevice);
+  printf("cost: \n");
+  for(int i=0;i<FACILITY;i++){ // 2 dimention cost
+    for(int j=0;j<FACILITY;j++){
+      printf("%d ", cost[i][j]);
+    }
+    printf("\n");
+	}
+  int *Gcost;
+  cudaMalloc((void**)&Gcost, FACILITY*FACILITY*sizeof(int));
+  cudaMemcpy(Gcost, cost, FACILITY*FACILITY*sizeof(int), cudaMemcpyHostToDevice);
 
 
-  for(short gggggg=0;gggggg<GENERATION;gggggg++){ // generation
+  for(int gggggg=0;gggggg<GENERATION;gggggg++){ // generation
 
-  // printf("\n*****%d的generation*****\n", gggggg);
-  short *GA;
-  bool *GB;
-  cudaMalloc((void**)&GA, ISLAND*POPULATION*FACILITY*sizeof(short));
-	cudaMemcpy(GA, data, ISLAND*POPULATION*FACILITY*sizeof(short), cudaMemcpyHostToDevice);
+  printf("\n*****%d的generation*****\n", gggggg);
+  int *GA;
+  short int *GB;
+  cudaMalloc((void**)&GA, ISLAND*POPULATION*FACILITY*sizeof(int));
+	cudaMemcpy(GA, data, ISLAND*POPULATION*FACILITY*sizeof(int), cudaMemcpyHostToDevice);
 
-	cudaMalloc((void**)&GB, ISLAND*POPULATION*(FACILITY-1)*sizeof(bool));
-	cudaMemcpy(GB, bay, ISLAND*POPULATION*(FACILITY-1)*sizeof(bool), cudaMemcpyHostToDevice);
+	cudaMalloc((void**)&GB, ISLAND*POPULATION*(FACILITY-1)*sizeof(short int));
+	cudaMemcpy(GB, bay, ISLAND*POPULATION*(FACILITY-1)*sizeof(short int), cudaMemcpyHostToDevice);
 
 
   float *Gposition;
@@ -518,7 +516,7 @@ int main(){
   // int *Gposition2;
   // cudaMalloc((void**)&Gposition2, ISLAND*POPULATION*FACILITY*2*sizeof(int));
 
-  short g=ISLAND, b=POPULATION;
+  int g=ISLAND, b=POPULATION;
   // int m=g*b;
   calPosition<<<g, b>>>(GA, GB, Gposition);
 
@@ -571,7 +569,7 @@ int main(){
   // for(int i=0;i<ISLAND*POPULATION*FACILITY*2;i++){
   //   printf("%f ", position[i]);
   // }
-  // printf("\n");
+  printf("\n");
 
   float distance[ISLAND*POPULATION*FACILITY*FACILITY] = {0};
 
@@ -583,7 +581,7 @@ int main(){
 
 	cudaMemcpy(distance, Gdistance, ISLAND*POPULATION*FACILITY*FACILITY*sizeof(float), cudaMemcpyDeviceToHost);
 
-  // printf("\ncalculate distance end\n");
+  printf("\ncalculate distance end\n");
 
   // print distance
 	// for(int i=0;i<ISLAND;i++){
@@ -646,12 +644,12 @@ int main(){
 	// }
 
 
-  short data2[ISLAND][POPULATION][FACILITY]; // facility
-  short *Gdata2;
-  cudaMalloc((void**)&Gdata2, ISLAND*POPULATION*FACILITY*sizeof(short));
-	bool bay2[ISLAND][POPULATION][FACILITY-1]; //bay
-  bool *Gbay2;
-  cudaMalloc((void**)&Gbay2, ISLAND*POPULATION*(FACILITY-1)*sizeof(bool));
+  int data2[ISLAND][POPULATION][FACILITY]; // facility
+  int *Gdata2;
+  cudaMalloc((void**)&Gdata2, ISLAND*POPULATION*FACILITY*sizeof(int));
+	short int bay2[ISLAND][POPULATION][FACILITY]; //bay
+  short int *Gbay2;
+  cudaMalloc((void**)&Gbay2, ISLAND*POPULATION*FACILITY*sizeof(short int));
 
 	float probability[ISLAND][POPULATION] = {0.0}; // �U�Ӿ��v
 
@@ -667,8 +665,8 @@ int main(){
   float *GtotalPro;
   cudaMalloc((void**)&GtotalPro, ISLAND*sizeof(float));
 
-  for(short i=0;i<ISLAND;i++){
-		for(short p=0;p<POPULATION;p++){
+  for(int i=0;i<ISLAND;i++){
+		for(int p=0;p<POPULATION;p++){
 			totalPro[i] = totalPro[i] + (1.0 / sumCost[i][p]);
 			// printf("%f %f\n", totalPro[i], (1.0 / sumCost[i][p]));
 		}
@@ -688,7 +686,6 @@ int main(){
   cudaMemcpy(probability, Gprobability, ISLAND*POPULATION*sizeof(float), cudaMemcpyDeviceToHost);
 
 	// for(int i=0;i<ISLAND;i++){
-  //   printf("\n");
 	// 	for(int p=0;p<POPULATION;p++){
 	// 		printf("%f %f %f \n", probability[i][p], (1.0 / sumCost[i][p]), totalPro[i]);
 	// 	}
@@ -696,9 +693,9 @@ int main(){
 
 
   float probability2[ISLAND][POPULATION] = {0.0};
-	for(short i=0;i<ISLAND;i++){
-		for(short p=0;p<POPULATION;p++){
-			for(short j=0;j<=p;j++){
+	for(int i=0;i<ISLAND;i++){
+		for(int p=0;p<POPULATION;p++){
+			for(int j=0;j<=p;j++){
 				probability2[i][p] += probability[i][j];
 			}
 		}
@@ -752,30 +749,29 @@ int main(){
   cudaMemcpy(GmutaTem2, mutaTem2, ISLAND*POPULATION*sizeof(int), cudaMemcpyHostToDevice);
 
   int *Gcount;
-  cudaMalloc((void**)&Gcount, ISLAND*POPULATION*sizeof(int));
+  cudaMalloc((void**)&Gcount, 10*sizeof(int));
   int *GetP, *GetP2;
-  cudaMalloc((void**)&GetP, ISLAND*POPULATION*sizeof(int));
-  cudaMalloc((void**)&GetP2, ISLAND*POPULATION*sizeof(int));
-  int getP[ISLAND*POPULATION], getP2[ISLAND*POPULATION];
+  cudaMalloc((void**)&GetP, 10*sizeof(int));
+  cudaMalloc((void**)&GetP2, 10*sizeof(int));
+  int getP[10], getP2[10];
   float *Gtest;
-  cudaMalloc((void**)&Gtest, ISLAND*POPULATION*sizeof(float));
-  float test[ISLAND*POPULATION] = {0.0};
+  cudaMalloc((void**)&Gtest, 10*sizeof(float));
+  float test[10] = {0.0};
   crossOver<<<ISLAND, POPULATION / 2>>>(Gprobability2, GA, GB, Gdata2, Gbay2, Gtem, Gtem2, Gyes, Gsss, Gcount, GetP, GetP2, Gtest);
   cudaMemcpy(data2, Gdata2, ISLAND*POPULATION*FACILITY*sizeof(int), cudaMemcpyDeviceToHost);
-  cudaMemcpy(bay2, Gbay2, ISLAND*POPULATION*(FACILITY-1)*sizeof(short int), cudaMemcpyDeviceToHost);
 
-  int count[ISLAND*POPULATION] = {0};
+  int count[10] = {0};
   cudaMemcpy(tem, Gtem, ISLAND*POPULATION*sizeof(int), cudaMemcpyDeviceToHost);
   cudaMemcpy(tem2, Gtem2, ISLAND*POPULATION*sizeof(int), cudaMemcpyDeviceToHost);
   cudaMemcpy(yes, Gyes, ISLAND*POPULATION*sizeof(int), cudaMemcpyDeviceToHost);
   cudaMemcpy(sss, Gsss, ISLAND*POPULATION*sizeof(int), cudaMemcpyDeviceToHost);
-  cudaMemcpy(count, Gcount, ISLAND*POPULATION*sizeof(int), cudaMemcpyDeviceToHost);
-  cudaMemcpy(getP, GetP, ISLAND*POPULATION / 2*sizeof(int), cudaMemcpyDeviceToHost);
-  cudaMemcpy(getP2, GetP2, ISLAND*POPULATION / 2*sizeof(int), cudaMemcpyDeviceToHost);
-  cudaMemcpy(test, Gtest, ISLAND*POPULATION*sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(count, Gcount, 10*sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(getP, GetP, 10*sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(getP2, GetP2, 10*sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(test, Gtest, 10*sizeof(int), cudaMemcpyDeviceToHost);
 
   // mutation facility
-	// printf("\nready to mutation\n");
+	printf("\nready to mutation\n");
 
   mutation<<<ISLAND, POPULATION>>>(Gdata2, GmutaYes, GmutaTem, GmutaTem2);
 
@@ -798,7 +794,7 @@ int main(){
 
   // migration
 	if( (gggggg+1) % MIGRATION == 0 && (gggggg+1) != 0 && ISLAND > 1){
-		// printf("***migration***\n");
+		printf("***migration***\n");
 
 		int temp3[ISLAND][POPULATION/2][FACILITY];
 		short temp4[ISLAND][POPULATION/2][FACILITY-1];
@@ -811,7 +807,7 @@ int main(){
 		}
 
 		// bubble sort
-		// float temp;
+		float temp;
 		for(int k=0;k<ISLAND;k++){
 			for(int i=POPULATION-1; i>=1; i--){
 	      for(int j=0; j<=i-1; j++){
@@ -867,7 +863,7 @@ int main(){
 				for(int k=0;k<POPULATION/2;k++){
 					int backP = indexCost[i-1][k];
 					int frontP = indexCost[i][k];
-					// int p = indexCost[i][k];
+					int p = indexCost[i][k];
 					for(int f=0;f<FACILITY;f++){
 						data2[i][frontP][f] = temp3[ISLAND-1][backP][f];
 					}
@@ -891,7 +887,7 @@ int main(){
   // }
 
   // printf("\nget: \n");
-  // for(int i=0;i<ISLAND*POPULATION / 2;i++){
+  // for(int i=0;i<10;i++){
   //   printf("%d %d\n", getP[i], getP2[i]);
   // }
 
@@ -909,36 +905,25 @@ int main(){
   // for(int i=0;i<20;i++){
   //   printf("%d %d %d\n", mutaYes[i], mutaTem[i], mutaTem2[i]);
   // }
-
-  if(gggggg==69){
-    int answerPos[2];
-    float answer;
-    answerPos[0] = 0;
-    answerPos[1] = 0;
-    answer = sumCost[0][0];
-    for(int i=0;i<ISLAND;i++){
-  		// printf("第%d島嶼(OF): \n", i);
-  		for(int p=0;p<POPULATION;p++){
-  			// printf("%f ", sumCost[i][p]);
-        if(sumCost[i][p] < answer){
-          answerPos[0] = i;
-          answerPos[1] = p;
-          answer = sumCost[i][p];
-        }
-  			// printf("\n");
-  		}
-  	}
+  float answer[3];
+  answer[0] = 0;
+  answer[1] = 0;
+  answer[2] = sumCost[0][0];
+  for(int i=0;i<ISLAND;i++){
+		// printf("第%d島嶼(OF): \n", i);
+		for(int p=0;p<POPULATION;p++){
+			// printf("%f ", sumCost[i][p]);
+      if(sumCost[i][p] < answer[2]){
+        answer[0] = i;
+        answer[1] = p;
+        answer[2] = sumCost[i][p];
+      }
+			// printf("\n");
+		}
+	}
 
 
-    for(int i=0;i<FACILITY;i++){
-      printf("%d ", data2[ answerPos[0] ][ answerPos[1] ][i]);
-    }
-    printf("\n");
-    for(int i=0;i<FACILITY-1;i++){
-      printf("%d ", bay2[ answerPos[0] ][ answerPos[1] ][i]);
-    }
-    printf("最小: %d %d = %f\n", answerPos[0], answerPos[1], answer);
-  }
+  printf("最小: %.0f %.0f = %f\n", answer[0], answer[1], answer[2]);
 
 
 

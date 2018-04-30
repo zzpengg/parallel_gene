@@ -1,0 +1,11 @@
+S0354033 資工三孫子朋
+說明:
+
+編譯nvcc final_cuda.cu
+執行./a.out
+
+有問題可以找我
+https://www.facebook.com/sun.z.peng (FB)
+0911-846292(手機)
+
+備註:應該是不會有問題啦XD，有問題可以密我，辛苦了
